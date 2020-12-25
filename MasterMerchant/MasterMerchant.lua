@@ -81,6 +81,107 @@ function MasterMerchant:TimeCheck()
   return GetTimeStamp() - (86400 * daysRange), daysRange
 end
 
+local stats = {}
+
+-- Get the mean value of a table
+function stats.mean( t )
+  local sum = 0
+  local count= 0
+
+  for k,v in pairs(t) do
+    if type(v) == 'number' then
+      sum = sum + v
+      count = count + 1
+    end
+  end
+
+  return (sum / count)
+end
+
+-- Get the median of a table.
+function stats.median( t )
+  local temp={}
+
+  -- deep copy table so that when we sort it, the original is unchanged
+  -- also weed out any non numbers
+  for k,v in pairs(t) do
+    if type(v) == 'number' then
+      table.insert( temp, v )
+    end
+  end
+
+  table.sort( temp )
+
+  -- If we have an even number of table elements or odd.
+  if math.fmod(#temp,2) == 0 then
+    -- return mean value of middle two elements
+    return ( temp[#temp/2] + temp[(#temp/2)+1] ) / 2
+  else
+    -- return middle element
+    return temp[math.ceil(#temp/2)]
+  end
+end
+
+
+-- Get the standard deviation of a table
+function stats.standardDeviation( t )
+  local m
+  local vm
+  local sum = 0
+  local count = 0
+  local result
+
+  m = stats.mean( t )
+
+  for k,v in pairs(t) do
+    if type(v) == 'number' then
+      vm = v - m
+      sum = sum + (vm * vm)
+      count = count + 1
+    end
+  end
+
+  result = math.sqrt(sum / (count-1))
+
+  return result
+end
+
+function stats.buildSample(theTable)
+  temp = { }
+  for k,v in pairs(theTable) do
+    local individualSale = v.price / v.quant
+    table.insert( temp, individualSale )
+  end
+  table.sort( temp )
+
+  local initMean = stats.mean(temp)
+  local standardDeviation = stats.standardDeviation(temp)
+  local count = 0
+  MasterMerchant:dm("Debug", "____________________")
+  for k,v in pairs(temp) do
+    z = (v - initMean) / standardDeviation
+    if z > 1.5 then count = count + 1 end
+  end
+  MasterMerchant:dm("Debug", count)
+  local range = math.abs(#temp * 0.12)
+  range = math.floor(range)
+  MasterMerchant:dm("Debug", range)
+  temp2 = { }
+  for i = count, #temp - count do
+    table.insert( temp2, temp[i] )
+  end
+  table.sort( temp2 )
+  return temp2
+end
+
+function stats.getDeviation(theTable)
+    local theNewDataSample = stats.buildSample(theTable)
+    local initMean = stats.mean(theNewDataSample)
+    local initMedian = stats.median(theNewDataSample)
+    local standardDeviation = stats.standardDeviation(theNewDataSample)
+    return initMean, initMedian, standardDeviation
+end
+
 function MasterMerchant:UseSaleDaysRange(item, timeCheck)
   local lowerBlacklist = MasterMerchant.systemSavedVariables.blacklist and MasterMerchant.systemSavedVariables.blacklist:lower() or ""
   if item.timestamp > timeCheck and
@@ -198,23 +299,27 @@ end
 function MasterMerchant:toolTipStats(theIID, itemIndex, skipDots, goBack, clickable)
   -- 10000 for numDays is more or less like saying it is undefined
   local returnData        = { ['avgPrice'] = nil, ['numSales'] = nil, ['numDays'] = 10000, ['numItems'] = nil, ['craftCost'] = nil }
+  if not MasterMerchant.isInitialized then return returnData end
   --[[TODO why is there a days range of 10000. I get that it kinda means
   all days but the daysHistory seems to be the actual number to be using.
   For example when you press SHIFT or CTRL then daysHistory and daysRange
   are the same. However, when you do not modify the data, then daysRange
   is 10000 and daysHistory is however many days you have.
   ]]--
+  local initMean          = 0
   local initMedian        = 0 -- may not be selected
   local standardDeviation = 1 -- because 1 gold or more
   local hasSalesData      = false
   local legitSales        = 0
   local daysHistory       = 0
+  local adjustedStandardMean = 1
+  local adjustedStandardMedian = 1
+  local adjustedStandardDeviation = 1
 
   -- make sure we have a list of sales to work with
-  if self.salesData[theIID] and self.salesData[theIID][itemIndex] and self.salesData[theIID][itemIndex]['sales'] and #self.salesData[theIID][itemIndex]['sales'] > 0 then
-    hasSalesData         = true
+  if self.salesData[theIID] and self.salesData[theIID][itemIndex] and self.salesData[theIID][itemIndex]['sales'] and #self.salesData[theIID][itemIndex]['sales'] > 0 then hasSalesData = true
 
-    local list           = self.salesData[theIID][itemIndex]['sales']
+    local list = self.salesData[theIID][itemIndex]['sales']
 
     local timeCheck
     local daysRange      = 10000
@@ -225,7 +330,6 @@ function MasterMerchant:toolTipStats(theIID, itemIndex, skipDots, goBack, clicka
     -- setup some initial values
     local initSum     = 0
     local initCount   = 0
-    local initMean    = 0
     local oldestTime  = nil
     local newestTime  = nil
     local medianTable = {}
@@ -281,10 +385,10 @@ function MasterMerchant:toolTipStats(theIID, itemIndex, skipDots, goBack, clicka
     local lookupDataFound = dataPresent(theIID, itemIndex, daysRange)
 
     if not lookupDataFound then
+      --[[
       if MasterMerchant.systemSavedVariables.defaultStatistics == GetString(MM_STATISTICS_MEDIAN) then
         -- determine the median
         table.sort(medianTable)
-
         -- If we have an even number of table elements or odd.
         if math.fmod(#medianTable, 2) == 0 then
           -- assign mean value of middle two elements
@@ -294,14 +398,27 @@ function MasterMerchant:toolTipStats(theIID, itemIndex, skipDots, goBack, clicka
           initMedian = medianTable[math.ceil(#medianTable / 2)]
         end
       end
+      ]]--
     else
       initMedian = MasterMerchant.itemAverageLookupTable[theIID][itemIndex][daysHistory].median
+    end
+
+    if theIID == 171330 then
+      if MM16DataSavedVariables["statTable"] == nil then MM16DataSavedVariables["statTable"] = {} end
+      if MM16DataSavedVariables["statTable"][theIID] == nil then MM16DataSavedVariables["statTable"][theIID] = {} end
+      MM16DataSavedVariables["statTable"][theIID] = list
+    end
+    if theIID == 135150 then
+      if MM16DataSavedVariables["statTable"] == nil then MM16DataSavedVariables["statTable"] = {} end
+      if MM16DataSavedVariables["statTable"][theIID] == nil then MM16DataSavedVariables["statTable"][theIID] = {} end
+      MM16DataSavedVariables["statTable"][theIID] = list
     end
 
     --[[ Determine the standard deviation, which requires the mean
     we do not need this if we are not going to trim the outliers
     ]]--
     if not lookupDataFound then
+      --[[
       if MasterMerchant.systemSavedVariables.trimOutliers then
         if not goBack then
           standardDeviation = MasterMerchant:FindStandardDeviationDaysRange(list, initCount, initMean, timeCheck)
@@ -312,9 +429,20 @@ function MasterMerchant:toolTipStats(theIID, itemIndex, skipDots, goBack, clicka
           standardDeviation = MasterMerchant:FindStandardDeviationAllSales(list, initCount, initMean)
         end
       end
+      ]]--
     else
       standardDeviation = MasterMerchant.itemAverageLookupTable[theIID][itemIndex][daysHistory].deviation
     end
+
+    if MasterMerchant.systemSavedVariables.trimOutliers then
+      initMean, initMedian, standardDeviation = stats.getDeviation(list)
+    end
+
+    MasterMerchant:dm("Debug", "____________________")
+    MasterMerchant:dm("Debug", initMean)
+    MasterMerchant:dm("Debug", initMedian)
+    MasterMerchant:dm("Debug", standardDeviation)
+    MasterMerchant:dm("Debug", "--------------------")
 
     local priceDeterminant
     local timeInterval     = newestTime - oldestTime
@@ -325,6 +453,7 @@ function MasterMerchant:toolTipStats(theIID, itemIndex, skipDots, goBack, clicka
     local weigtedCountSold = 0
     local salesPoints      = {}
     local rangeDeviation   = (3 * standardDeviation)
+    MasterMerchant:dm("Debug", rangeDeviation)
     local weightValue      = 0
     local dayInterval      = 0
     local lowRange         = 1
@@ -2259,7 +2388,7 @@ function MasterMerchant:CheckStatus()
     if eventCount == 0 and MasterMerchant.timeEstimated[guildID] then MasterMerchant.eventsNeedProcessing[guildID] = false end
     --[[
     if eventCount > 1 then
-      MasterMerchant:v(2, string.format("Events remaining: %s for %s and %s : %s", eventCount, GetGuildName(guildID), processingSpeed, timeLeft))
+      MasterMerchant:v(2, string.format("Guild Name: %s ; Numevents loaded: %s ; Event Count: %s ; Speed: %s ; Time Left: %s", GetGuildName(guildID), numEvents, eventCount, processingSpeed, timeLeft))
     end
     ]]--
   end
@@ -2684,7 +2813,6 @@ function MasterMerchant:InitRosterChanges()
 
 end
 
-
 -- Handle the reset button - clear out the search and scan tables,
 -- and set the time of the last scan to nil, then force a scan.
 function MasterMerchant:DoReset()
@@ -2750,14 +2878,17 @@ function MasterMerchant:ReferenceSales(otherData)
         if self.salesData[itemid][versionid] then
           if versiondata.sales then
             self.salesData[itemid][versionid].sales = self.salesData[itemid][versionid].sales or {}
-            -- IPAIRS
+            local oldestTime = nil
+            local totalCount = 0
             for saleid, saledata in pairs(versiondata.sales) do
-              if (type(saleid) == 'number' and type(saledata) == 'table' and type(saledata.timestamp) == 'number') then
+                totalCount = totalCount +1
+                if oldestTime == nil or oldestTime > saledata.timestamp then oldestTime = saledata.timestamp end
                 table.insert(self.salesData[itemid][versionid].sales, saledata)
-              end
             end
             local _, first = next(versiondata.sales, nil)
             if first then
+              self.salesData[itemid][versionid].totalCount = totalCount
+              self.salesData[itemid][versionid].oldestTime = oldestTime
               self.salesData[itemid][versionid].itemIcon      = GetItemLinkInfo(first.itemLink)
               self.salesData[itemid][versionid].itemAdderText = self.addedSearchToItem(first.itemLink)
               self.salesData[itemid][versionid].itemDesc      = GetItemLinkName(first.itemLink)
@@ -2930,7 +3061,7 @@ function MasterMerchant:MoveFromOldAcctSavedVariables()
   end
 end
 
-function MasterMerchant:AdjustItemsAllContainers(currentTask)
+function MasterMerchant:AdjustItemsAllContainers()
   -- Convert event IDs to string if not converted
   MasterMerchant:dm("Debug", "Convert event IDs to string if not converted")
   if not MasterMerchant.systemSavedVariables.itemIDConvertedToString then
@@ -2954,7 +3085,7 @@ function MasterMerchant:AdjustItemsAllContainers(currentTask)
   end
 end
 
-function MasterMerchant:ReIndexSalesAllContainers(currentTask)
+function MasterMerchant:ReIndexSalesAllContainers()
   -- Update indexs because of Writs
   MasterMerchant:dm("Debug", "Update indexs if not converted")
   if not MasterMerchant.systemSavedVariables.shouldReindex then
