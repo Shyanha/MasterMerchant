@@ -1419,7 +1419,7 @@ function MasterMerchant:addStatsAndGraph(tooltip, itemLink, clickable)
           graphInfo.oldestTime, GetTimeStamp(), graphInfo.low, graphInfo.high, xPrice, avePrice)
         if MasterMerchant.systemSavedVariables.displaySalesDetails then
           for _, point in ipairs(graphInfo.points) do
-            graph.points:AddPoint(point[1], point[2], point[3], point[4])
+            graph.points:AddPoint(point[1], point[2], point[3], point[4], point[5])
           end
         else
           for _, point in ipairs(graphInfo.points) do
@@ -1448,7 +1448,7 @@ function MasterMerchant:addStatsAndGraph(tooltip, itemLink, clickable)
     end
   end
 
-  if MasterMerchant.systemSavedVariables.verbose == 7 then
+  if MasterMerchant.systemSavedVariables.verbose == 6 then
     if not tooltip.mmTextDebug then
       tooltip.mmTextDebug = tooltip.textPool:AcquireObject()
       tooltip:AddControl(tooltip.mmTextDebug)
