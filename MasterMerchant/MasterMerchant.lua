@@ -143,7 +143,7 @@ function stats.mean( t )
     count = count + 1
   end
 
-  return (sum / count)
+  return (sum / count), count, sum
 end
 
 -- Get the median of a table.
@@ -153,7 +153,6 @@ function stats.median( t, index, range )
   index = index or 1
   range = range or #t
 
-  -- deep copy table so that when we sort it, the original is unchanged
   for i = index, range do
     local individualSale = sortedSales[i].price / sortedSales[i].quant
     table.insert( temp, individualSale )
@@ -169,6 +168,57 @@ function stats.median( t, index, range )
     -- return middle element
     return temp[math.ceil(#temp/2)]
   end
+end
+
+function stats.maxmin( t )
+  local max = -math.huge
+  local min = math.huge
+
+  for key, item in pairs(t) do
+    local individualSale = item.price / item.quant
+    max = math.max( max, individualSale )
+    min = math.min( min, individualSale )
+  end
+
+  return max, min
+end
+
+function stats.range( t )
+  local highest, lowest = stats.maxmin( t )
+  return highest - lowest
+end
+
+-- Get the mode of a table.  Returns a table of values.
+-- Works on anything (not just numbers).
+function stats.mode( t )
+  local counts={}
+
+  for key, item in pairs(t) do
+    local individualSale = item.price / item.quant
+    if counts[individualSale] == nil then
+      counts[individualSale] = 1
+    else
+      counts[individualSale] = counts[individualSale] + 1
+    end
+  end
+
+  local biggestCount = 0
+
+  for k, v  in pairs( counts ) do
+    if v > biggestCount then
+      biggestCount = v
+    end
+  end
+
+  local temp={}
+
+  for k,v in pairs( counts ) do
+    if v == biggestCount then
+      table.insert( temp, k )
+    end
+  end
+
+  return temp
 end
 
 function stats.getMiddleIndex( count )
@@ -2663,7 +2713,7 @@ function MasterMerchant:DoReset()
   ]]--
 end
 
---[[TODO Use this to convert even IDs to strings]]--
+--[[TODO Use this to convert IDs to strings]]--
 function MasterMerchant:AdjustItems(otherData)
   for itemID, itemIndex in pairs(otherData.savedVariables.SalesData) do
     for field, itemIndexData in pairs(itemIndex) do
@@ -2903,7 +2953,7 @@ end
 function MasterMerchant:AdjustItemsAllContainers()
   -- Convert event IDs to string if not converted
   MasterMerchant:dm("Debug", "Convert event IDs to string if not converted")
-  if not MasterMerchant.systemSavedVariables.itemIDConvertedToString then
+  if not MasterMerchant.systemSavedVariables.verThreeItemIDConvertedToString then
     self:AdjustItems(MM00Data)
     self:AdjustItems(MM01Data)
     self:AdjustItems(MM02Data)
@@ -2920,7 +2970,7 @@ function MasterMerchant:AdjustItemsAllContainers()
     self:AdjustItems(MM13Data)
     self:AdjustItems(MM14Data)
     self:AdjustItems(MM15Data)
-    MasterMerchant.systemSavedVariables.itemIDConvertedToString = true
+    MasterMerchant.systemSavedVariables.verThreeItemIDConvertedToString = true
   end
 end
 
@@ -3108,8 +3158,9 @@ function MasterMerchant:Initialize()
     diplayCountInfo            = true,
     lastReceivedEventID        = {},
     showAmountTaxes            = false,
-    itemIDConvertedToString    = false, -- this only converts id64 at this time
     useLibDebugLogger          = false, -- added 11-28
+    -- conversion vars
+    verThreeItemIDConvertedToString    = false, -- this only converts id64 at this time
     shouldReindex              = false,
     shouldAdderText            = false,
   }
