@@ -148,10 +148,13 @@ function MasterMerchant:iterateOverSalesData(itemid, versionid, saleid, prefunc,
       end
 
       if not MasterMerchant.systemSavedVariables.shouldAdderText then
-        local itemLink = versiondata['sales'][1].itemLink
-        if itemLink then
-          versiondata['itemAdderText'] = MasterMerchant.addedSearchToItem(itemLink)
-          versiondata['itemDesc'] = GetItemLinkName(itemLink)
+        local _, itemData = next(versiondata['sales'])
+        if itemData then
+          itemLink = itemData["itemLink"]
+          if itemLink then
+            versiondata['itemAdderText'] = MasterMerchant.addedSearchToItem(itemLink)
+            versiondata['itemDesc'] = GetItemLinkName(itemLink)
+          end
         end
       end
       if extraData.wasAltered then
