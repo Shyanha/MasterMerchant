@@ -148,7 +148,7 @@ function MasterMerchant:iterateOverSalesData(itemid, versionid, saleid, prefunc,
       end
 
       if not MasterMerchant.systemSavedVariables.shouldAdderText then
-        local itemLink = versiondata['sales'][1]
+        local itemLink = versiondata['sales'][1].itemLink
         if itemLink then
           versiondata['itemAdderText'] = MasterMerchant.addedSearchToItem(itemLink)
           versiondata['itemDesc'] = GetItemLinkName(itemLink)
@@ -231,6 +231,7 @@ function MasterMerchant:TruncateHistory()
           -- Remove it by setting it to nil
           versiondata['sales'][saleid] = nil
           salesDeleted                 = salesDeleted + 1
+          extraData.wasAltered = true
         end
       else
         if salesCount > MasterMerchant.systemSavedVariables.minItemCount and
@@ -243,6 +244,7 @@ function MasterMerchant:TruncateHistory()
           versiondata['sales'][saleid] = nil
           salesDeleted                 = salesDeleted + 1
           salesCount                   = salesCount - 1
+          extraData.wasAltered = true
         end
       end
     end
