@@ -36,6 +36,20 @@ MasterMerchant.oneYearInSeconds = MasterMerchant.oneDayInSeconds * 365
 ------------------------------
 --- MM Stuff               ---
 ------------------------------
+function MasterMerchant:SetFontListChoices()
+  if MasterMerchant.effective_lang == "pl" then
+    MasterMerchant.fontListChoices = { "Arial Narrow", "Consolas", 
+      "Futura Condensed", "Futura Condensed Bold", 
+      "Futura Condensed Light", "Trajan Pro", "Univers 55", 
+      "Univers 57", "Univers 67", }
+    if not MasterMerchant:is_in(MasterMerchant.systemSavedVariables.windowFont, MasterMerchant.fontListChoices) then
+      MasterMerchant.systemSavedVariables.windowFont = "Univers 57"
+    end
+  else
+    MasterMerchant.fontListChoices = LMP:List(LMP.MediaType.FONT)
+    -- /script d(LibMediaProvider:List(LibMediaProvider.MediaType.FONT))
+  end
+end
 
 function MasterMerchant.CenterScreenAnnounce_AddMessage(eventId, category, ...)
   local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(category)
@@ -1182,6 +1196,8 @@ MasterMerchant.UI_GuildTime  = nil
 
 -- LibAddon init code
 function MasterMerchant:LibAddonInit()
+  -- configure font choices
+  MasterMerchant:SetFontListChoices()
   MasterMerchant:dm("Debug", "LibAddonInit")
   local panelData = {
     type                = 'panel',
@@ -1263,7 +1279,7 @@ function MasterMerchant:LibAddonInit()
       type    = 'dropdown',
       name    = GetString(SK_WINDOW_FONT_NAME),
       tooltip = GetString(SK_WINDOW_FONT_TIP),
-      choices = LMP:List(LMP.MediaType.FONT),
+      choices = MasterMerchant.fontListChoices,
       getFunc = function() return MasterMerchant.systemSavedVariables.windowFont end,
       setFunc = function(value)
         MasterMerchant.systemSavedVariables.windowFont = value
@@ -2170,7 +2186,7 @@ function MasterMerchant:PostScanParallel(guildName, doAlert)
           -- German word order differs so argument order also needs to be changed
           -- Also due to plurality differences in German, need to differentiate
           -- single item sold vs. multiple of an item sold.
-          if MasterMerchant.locale == 'de' then
+          if MasterMerchant.effective_lang == 'de' then
             if theEvent.quant > 1 then
               MasterMerchant.CenterScreenAnnounce_AddMessage('MasterMerchantAlert', CSA_EVENT_SMALL_TEXT, SOUNDS.NONE,
                 string.format(GetString(SK_SALES_ALERT_COLOR), theEvent.quant,
@@ -2190,7 +2206,7 @@ function MasterMerchant:PostScanParallel(guildName, doAlert)
 
         -- Chat alert
         if MasterMerchant.systemSavedVariables.showChatAlerts then
-          if MasterMerchant.locale == 'de' then
+          if MasterMerchant.effective_lang == 'de' then
             if theEvent.quant > 1 then
               MasterMerchant:v(1,
                 string.format(MasterMerchant.concat(GetString(MM_APP_MESSAGE_NAME), GetString(SK_SALES_ALERT)),
@@ -3029,6 +3045,30 @@ function MasterMerchant:ReAdderTextAllContainers()
   end
 end
 
+function MasterMerchant:ReAddDescriptionAllContainers()
+  -- Update indexs because of Writs
+  MasterMerchant:dm("Debug", "Update indexs if not converted")
+  if not MasterMerchant.systemSavedVariables.shouldAdderText then
+    self:ReAddDescription(MM00Data)
+    self:ReAddDescription(MM01Data)
+    self:ReAddDescription(MM02Data)
+    self:ReAddDescription(MM03Data)
+    self:ReAddDescription(MM04Data)
+    self:ReAddDescription(MM05Data)
+    self:ReAddDescription(MM06Data)
+    self:ReAddDescription(MM07Data)
+    self:ReAddDescription(MM08Data)
+    self:ReAddDescription(MM09Data)
+    self:ReAddDescription(MM10Data)
+    self:ReAddDescription(MM11Data)
+    self:ReAddDescription(MM12Data)
+    self:ReAddDescription(MM13Data)
+    self:ReAddDescription(MM14Data)
+    self:ReAddDescription(MM15Data)
+    MasterMerchant.systemSavedVariables.shouldAdderText = true
+  end
+end
+
 -- Bring seperate lists together we can still access the sales history all together
 function MasterMerchant:ReferenceSalesAllContainers()
   MasterMerchant:dm("Debug", "Bring seperate lists together")
@@ -3771,6 +3811,12 @@ function MasterMerchant:RegisterFonts()
   LMP:Register("font", "Fontin Italic", [[MasterMerchant/Fonts/fontin_sans_i.otf]])
   LMP:Register("font", "Fontin Regular", [[MasterMerchant/Fonts/fontin_sans_r.otf]])
   LMP:Register("font", "Fontin SmallCaps", [[MasterMerchant/Fonts/fontin_sans_sc.otf]])
+  if MasterMerchant.effective_lang == "pl" and EsoPL then
+    MasterMerchant:dm("Debug", "Setting ProseAntique")
+    LMP.MediaTable.font["ProseAntique"] = nil
+    LMP:Register("font", "ProseAntique", [[esoui/common/fonts/proseantiquepsmtcyrillic.otf]])
+    MasterMerchant:dm("Debug", LMP.MediaTable.font["ProseAntique"])
+  end
 end
 
 local function OnAddOnLoaded(eventCode, addOnName)
@@ -4021,6 +4067,15 @@ function MasterMerchant.Slash(allArgs)
       message = message .. GetString("SI_ITEMQUALITY", i) .. ', '
     end
     MasterMerchant:v(2, message)
+    return
+  end
+  if args == 'addr' then
+    if MasterMerchant.isScanning then
+      MasterMerchant:v(2, "Master Merchant is busy, wait for the current process to finish.")
+      return
+    end
+    MasterMerchant.systemSavedVariables.shouldAdderText = false
+    MasterMerchant:ReAdderTextAllContainers()
     return
   end
   if args == 'equip' then

@@ -26,7 +26,37 @@ MMScrollList.SORT_KEYS                = {
 
 MasterMerchant                        = { }
 MasterMerchant.name                   = 'MasterMerchant'
-MasterMerchant.version                = '3.5.21'
+MasterMerchant.version                = '3.5.22'
+
+-------------------------------------------------
+----- early helper                          -----
+-------------------------------------------------
+
+function MasterMerchant:is_in(search_value, search_table)
+  for k, v in pairs(search_table) do
+    if search_value == v then return true end
+    if type(search_value) == "string" then
+      if string.find(string.lower(v), string.lower(search_value)) then return true end
+    end
+  end
+  return false
+end
+
+-------------------------------------------------
+----- MasterMerchant Localization           -----
+-------------------------------------------------
+
+MasterMerchant.client_lang = GetCVar("language.2")
+MasterMerchant.effective_lang = nil
+MasterMerchant.supported_lang = true
+local supported_lang = { "br", "de", "en", "fr", "jp", "ru", "pl", }
+if MasterMerchant:is_in(MasterMerchant.client_lang, supported_lang) then
+  MasterMerchant.effective_lang = MasterMerchant.client_lang
+else
+  MasterMerchant.effective_lang = "en"
+end
+MasterMerchant.supported_lang = MasterMerchant.client_lang == MasterMerchant.effective_lang 
+
 MasterMerchant.locale                 = GetCVar('Language.2')
 -- default is self
 MasterMerchant.viewMode               = 'self'
@@ -51,6 +81,7 @@ MasterMerchant.eventsNeedProcessing   = {}
 MasterMerchant.timeEstimated          = {}
 MasterMerchant.purgeQueue             = {}
 MasterMerchant.totalRecords           = 0 -- added 12-16 but always there
+MasterMerchant.fontListChoices        = {} -- added 12-16 but always there
 MasterMerchant.a_test                 = {}
 
 if AwesomeGuildStore then

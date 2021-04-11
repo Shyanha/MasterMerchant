@@ -147,6 +147,17 @@ function MasterMerchant:iterateOverSalesData(itemid, versionid, saleid, prefunc,
         extraData.versionRemoved = true
       end
 
+      if not MasterMerchant.systemSavedVariables.shouldAdderText then
+        local itemLink = versiondata['sales'][1]
+        if itemLink then
+          versiondata['itemAdderText'] = MasterMerchant.addedSearchToItem(itemLink)
+          versiondata['itemDesc'] = GetItemLinkName(itemLink)
+        end
+      end
+      if extraData.wasAltered then
+        versiondata["wasAltered"] = true
+        extraData.wasAltered = false
+      end
       -- Go onto the next Version
       versionid, versiondata = next(versionlist, versionid)
       extraData.saleRemoved  = false
@@ -201,6 +212,7 @@ function MasterMerchant:TruncateHistory()
     extraData.start       = GetTimeStamp()
     extraData.deleteCount = 0
     extraData.epochBack   = GetTimeStamp() - (86400 * MasterMerchant.systemSavedVariables.historyDepth)
+    extraData.wasAltered  = false
 
     self:setScanning(true)
   end
@@ -318,6 +330,7 @@ function MasterMerchant:InitItemHistory()
       extraData.start = GetTimeStamp()
       self:setScanning(true)
       extraData.totalRecords = 0
+      extraData.wasAltered  = false
     end
 
     local loopfunc    = function(itemid, versionid, versiondata, saleid, saledata, extraData)
@@ -418,6 +431,7 @@ function MasterMerchant:indexHistoryTables()
     extraData.checkMilliseconds = 60
     extraData.indexCount        = 0
     extraData.wordsIndexCount   = 0
+    extraData.wasAltered        = false
     self.SRIndex                = {}
     self:setScanning(true)
   end
@@ -498,8 +512,12 @@ function MasterMerchant:CleanOutBad()
     extraData.checkMilliseconds = 120
     extraData.eventIdIsNumber   = 0
     extraData.badItemLinkCount  = 0
+    extraData.wasAltered        = false
 
     self:setScanning(true)
+    if not MasterMerchant.systemSavedVariables.shouldAdderText then
+      MasterMerchant:dm("Debug", "Description Text Iwll be updated")
+    end
   end
 
   local loopfunc = function(itemid, versionid, versiondata, saleid, saledata, extraData)
@@ -524,7 +542,7 @@ function MasterMerchant:CleanOutBad()
       or saledata['id'] == nil then
       -- Remove it
       versiondata['sales'][saleid] = nil
-      versiondata["wasAltered"] = true
+      extraData.wasAltered = true
       extraData.deleteCount        = extraData.deleteCount + 1
       return
     end
@@ -532,13 +550,19 @@ function MasterMerchant:CleanOutBad()
     local theIID       = GetItemLinkItemId(saledata['itemLink'])
     local itemIdMatch  = tonumber(string.match(saledata['itemLink'], '|H.-:item:(.-):'))
     local itemlinkName = GetItemLinkName(saledata['itemLink'])
+    --[[
     if not MasterMerchant.systemSavedVariables.shouldAdderText then
-      versiondata['itemAdderText'] = self.addedSearchToItem(saledata['itemLink'])
+      local itemIndex = MasterMerchant.makeIndexFromLink(saledata['itemLink'])
+      self.salesData[theIID][itemIndex]['itemAdderText'] = MasterMerchant.addedSearchToItem(saledata['itemLink'])
+      self.salesData[theIID][itemIndex]['itemDesc'] = GetItemLinkName(saledata['itemLink'])
     end
+    ]]--
+    -- /script MasterMerchant:dm("Debug", zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName("|H0:item:69354:363:50:0:0:0:0:0:0:0:0:0:0:0:0:19:0:0:0:0:0|h|h")))
+    -- /script MasterMerchant:dm("Debug", MasterMerchant.addedSearchToItem("|H0:item:69354:363:50:0:0:0:0:0:0:0:0:0:0:0:0:19:0:0:0:0:0|h|h"))
     if not MasterMerchant:IsValidItemLink(saledata['itemLink']) then
       -- Remove it
       versiondata['sales'][saleid] = nil
-      versiondata["wasAltered"] = true
+      extraData.wasAltered = true
       extraData.badItemLinkCount   = extraData.badItemLinkCount + 1
       return
     end
@@ -601,7 +625,7 @@ function MasterMerchant:CleanOutBad()
       extraData.moveCount          = extraData.moveCount + 1
       -- Remove it from it's current location
       versiondata['sales'][saleid] = nil
-      versiondata["wasAltered"] = true
+      extraData.wasAltered = true
       extraData.deleteCount        = extraData.deleteCount + 1
       return
     end
@@ -678,10 +702,11 @@ end
 function MasterMerchant:SlideSales(goback)
 
   local prefunc  = function(extraData)
-    extraData.start     = GetTimeStamp()
-    extraData.moveCount = 0
-    extraData.oldName   = GetDisplayName()
-    extraData.newName   = extraData.oldName .. 'Slid'
+    extraData.start      = GetTimeStamp()
+    extraData.moveCount  = 0
+    extraData.wasAltered = false
+    extraData.oldName    = GetDisplayName()
+    extraData.newName    = extraData.oldName .. 'Slid'
     if extraData.oldName == '@kindredspiritgr' then extraData.newName = '@kindredthesexybiotch' end
 
     if goback then extraData.oldName, extraData.newName = extraData.newName, extraData.oldName end
