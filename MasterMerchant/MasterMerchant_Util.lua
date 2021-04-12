@@ -7,22 +7,6 @@
 
 --  |H0:item:69359:96:50:26848:96:50:0:0:0:0:0:0:0:0:0:19:0:0:0:0:0|h|h  AUTGuild 1058 days
 
-function MasterMerchant:v(level, message)
-  local verboseLevel = MasterMerchant.verboseLevel or 4
-  -- DEBUG
-  if (level <= verboseLevel) then
-    if message then
-      if CHAT_ROUTER then
-        CHAT_ROUTER:AddSystemMessage(message)
-      elseif RequestDebugPrintText then
-        RequestDebugPrintText(message)
-      else
-        d(message)
-      end
-    end
-  end
-end
-
 function MasterMerchant:ssup(inputTable, numElements)
   for _, gapVal in ipairs(MasterMerchant.shellGaps) do
     for i = gapVal + 1, numElements do

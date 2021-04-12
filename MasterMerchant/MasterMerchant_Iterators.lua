@@ -289,8 +289,8 @@ function MasterMerchant:TruncateHistory()
     end
     self:setScanning(false)
 
-    MasterMerchant:v(4, 'Trimming: ' .. GetTimeStamp() - extraData.start .. ' seconds to trim:')
-    MasterMerchant:v(4, '  ' .. extraData.deleteCount .. ' old records removed.')
+    MasterMerchant:dm("Info", string.format(GetString(MM_TRUNCATE_TIME_ELAPSED), GetTimeStamp() - extraData.start))
+    MasterMerchant:dm("Info", string.format(GetString(MM_TRUNCATE_REMOVED), extraData.deleteCount))
 
   end
 
@@ -304,7 +304,7 @@ end
 function MasterMerchant:InitItemHistory()
   MasterMerchant:dm("Debug", "InitItemHistory")
 
-  MasterMerchant:v(3, 'Starting Guild and Item total initialization')
+  MasterMerchant:dm("Info", GetString(MM_INIT_ITEM_HISTORY))
 
   local extradata = {}
 
@@ -408,7 +408,7 @@ function MasterMerchant:InitItemHistory()
       self:setScanning(false)
 
       self.totalRecords = extraData.totalRecords
-      MasterMerchant:v(3, 'Init Guild and Item totals: ' .. GetTimeStamp() - extraData.start .. ' seconds to init ' .. self.totalRecords .. ' records.')
+      MasterMerchant:dm("Info", string.format(GetString(MM_INIT_ITEM_HISTORY_SUMMARY), GetTimeStamp() - extraData.start, self.totalRecords))
     end
 
     if not self.isScanning then
@@ -428,9 +428,9 @@ function MasterMerchant:indexHistoryTables()
 
   local prefunc    = function(extraData)
     if MasterMerchant.systemSavedVariables.minimalIndexing then
-      MasterMerchant:v(3, 'Minimal Indexing...')
+      MasterMerchant:dm("Info", GetString(MM_MINIMAL_INDEXING))
     else
-      MasterMerchant:v(3, 'Full Indexing...')
+      MasterMerchant:dm("Info", GetString(MM_FULL_INDEXING))
     end
     extraData.start             = GetTimeStamp()
     extraData.checkMilliseconds = 60
@@ -491,10 +491,10 @@ function MasterMerchant:indexHistoryTables()
 
   local postfunc   = function(extraData)
     self:setScanning(false)
-    MasterMerchant:v(3, 'Indexing: ' .. GetTimeStamp() - extraData.start .. ' seconds to index:')
-    MasterMerchant:v(3, '  ' .. extraData.indexCount .. ' sales records')
+    MasterMerchant:dm("Info", string.format(GetString(MM_INDEX_HISTORY_TIME_ELAPSED), GetTimeStamp() - extraData.start))
+    MasterMerchant:dm("Info", string.format(GetString(MM_INDEX_HISTORY_TIME_RECORDS), extraData.indexCount))
     if extraData.wordsIndexCount > 1 then
-      MasterMerchant:v(3, '  ' .. extraData.wordsIndexCount .. ' unique words')
+      MasterMerchant:dm("Info", string.format(GetString(MM_INDEX_HISTORY_TIME_WORDS), extraData.wordsIndexCount))
     end
   end
 
@@ -658,19 +658,18 @@ function MasterMerchant:CleanOutBad()
       extraData.muleIdCount = extraData.muleIdCount + self:CleanMule(MM15Data.savedVariables.SalesData)
     end
 
-    MasterMerchant:v(2, 'Cleaning: ' .. GetTimeStamp() - extraData.start .. ' seconds to clean:')
-    MasterMerchant:v(2,
-      '  ' .. (extraData.badItemLinkCount + extraData.deleteCount) - extraData.moveCount .. ' bad sales records removed')
-    MasterMerchant:v(2, '  ' .. extraData.moveCount .. ' sales records re-indexed')
-    MasterMerchant:v(2, '  ' .. extraData.versionCount .. ' bad item versions')
-    MasterMerchant:v(2, '  ' .. extraData.idCount .. ' bad item IDs')
-    MasterMerchant:v(2, '  ' .. extraData.muleIdCount .. ' bad mule item IDs')
-    MasterMerchant:v(2, '  ' .. extraData.eventIdIsNumber .. ' events with numbers converted to strings')
-    MasterMerchant:v(2, '  ' .. extraData.badItemLinkCount .. ' bad item links removed')
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_TIME_ELAPSED), GetTimeStamp() - extraData.start))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_BAD_REMOVED), (extraData.badItemLinkCount + extraData.deleteCount) - extraData.moveCount))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_REINDEXED), extraData.moveCount))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_WRONG_VERSION), extraData.versionCount))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_WRONG_ID), extraData.idCount))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_WRONG_MULE), extraData.muleIdCount))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_STRINGS_CONVERTED), extraData.eventIdIsNumber))
+    MasterMerchant:dm("Info", string.format(GetString(MM_CLEANING_BAD_ITEMLINKS), extraData.badItemLinkCount))
 
     local LEQ = LibExecutionQueue:new()
     if extraData.deleteCount > 0 then
-      MasterMerchant:v(5, 'Reindexing Everything.')
+      MasterMerchant:dm("Info", GetString(MM_REINDEXING_EVERYTHING))
       --rebuild everything
       self.SRIndex        = {}
 
@@ -681,7 +680,7 @@ function MasterMerchant:CleanOutBad()
       LEQ:Add(function() self:RenewExtraDataAllContainers() end, 'RenewExtraDataAllContainers')
       LEQ:Add(function() self:InitItemHistory() end, 'InitItemHistory')
       LEQ:Add(function() self:indexHistoryTables() end, 'indexHistoryTables')
-      LEQ:Add(function() MasterMerchant:v(5, 'Reindexing Complete.') end, 'Done')
+      LEQ:Add(function() MasterMerchant:dm("Info", GetString(MM_REINDEXING_COMPLETE)) end, 'Done')
     end
 
     LEQ:Add(function()
@@ -728,7 +727,7 @@ function MasterMerchant:SlideSales(goback)
 
   local postfunc = function(extraData)
 
-    MasterMerchant:v(2, 'Sliding: ' .. GetTimeStamp() - extraData.start .. ' seconds to slide ' .. extraData.moveCount .. ' sales records to ' .. extraData.newName .. '.')
+    MasterMerchant:dm("Info", string.format(GetString(MM_SLIDING_SUMMARY), GetTimeStamp() - extraData.start, extraData.moveCount, extraData.newName))
     self.SRIndex[MasterMerchant.PlayerSpecialText] = {}
     self:setScanning(false)
 
