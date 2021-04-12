@@ -3792,12 +3792,6 @@ function MasterMerchant:RegisterFonts()
   LMP:Register("font", "Fontin Italic", [[MasterMerchant/Fonts/fontin_sans_i.otf]])
   LMP:Register("font", "Fontin Regular", [[MasterMerchant/Fonts/fontin_sans_r.otf]])
   LMP:Register("font", "Fontin SmallCaps", [[MasterMerchant/Fonts/fontin_sans_sc.otf]])
-  if MasterMerchant.effective_lang == "pl" and EsoPL then
-    MasterMerchant:dm("Debug", "Setting ProseAntique")
-    LMP.MediaTable.font["ProseAntique"] = nil
-    LMP:Register("font", "ProseAntique", [[esoui/common/fonts/proseantiquepsmtcyrillic.otf]])
-    MasterMerchant:dm("Debug", LMP.MediaTable.font["ProseAntique"])
-  end
 end
 
 local function OnAddOnLoaded(eventCode, addOnName)
@@ -3864,7 +3858,7 @@ function MasterMerchant.Slash(allArgs)
     if argNum == 3 then hoursBack = tonumber(w) end
   end
   args = string.lower(args)
-  --TODO Create translation strings for help and slash commands
+
   if args == 'help' then
     MasterMerchant:dm("Info", GetString(MM_HELP_WINDOW))
     MasterMerchant:dm("Info", GetString(MM_HELP_DUPS))

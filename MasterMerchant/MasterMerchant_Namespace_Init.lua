@@ -46,7 +46,7 @@ end
 ----- MasterMerchant Localization           -----
 -------------------------------------------------
 
-MasterMerchant.client_lang = GetCVar("language.2")
+MasterMerchant.client_lang = GetCVar("Language.2")
 MasterMerchant.effective_lang = nil
 MasterMerchant.supported_lang = true
 local supported_lang = { "br", "de", "en", "fr", "jp", "ru", "pl", }
@@ -57,7 +57,6 @@ else
 end
 MasterMerchant.supported_lang = MasterMerchant.client_lang == MasterMerchant.effective_lang
 
-MasterMerchant.locale                 = GetCVar('Language.2')
 -- default is self
 MasterMerchant.viewMode               = 'self'
 MasterMerchant.isScanning             = false

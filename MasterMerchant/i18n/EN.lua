@@ -1,4 +1,4 @@
-﻿-- MasterMerchant Polish Localization File
+﻿-- MasterMerchant English Localization File
 -- Last Updated April 11, 2021
 -- Written July 2014 by Dan Stone (@khaibit) - dankitymao@gmail.com
 -- Extended February 2015 by Chris Lasswell (@Philgo68) - Philgo68@gmail.com
@@ -68,6 +68,8 @@ ZO_CreateStringId("SK_ITEM_COLUMN", "Item Sold")
 ZO_CreateStringId("SK_TIME_COLUMN", "Sale Time")
 ZO_CreateStringId("SK_PRICE_COLUMN", "Price")
 ZO_CreateStringId("SK_PRICE_EACH_COLUMN", "Price(ea.)")
+ZO_CreateStringId("SK_ITEM_TOOLTIP", "Right-click on an item to link it in chat.")
+ZO_CreateStringId("SK_BUYER_TOOLTIP", "Right-click on a name to contact them.")
 ZO_CreateStringId("SK_SORT_TIME_TOOLTIP", "Click to sort by sale time.")
 ZO_CreateStringId("SK_SORT_PRICE_TOOLTIP", "Click to sort by sale price.")
 ZO_CreateStringId("SK_STATS_TOOLTIP", "Open statistics window.")
